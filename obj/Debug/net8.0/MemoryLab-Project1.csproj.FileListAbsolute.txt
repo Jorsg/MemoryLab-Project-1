@@ -12,3 +12,4 @@ D:\Repos\Momory-Management-Project-Lab\MemoryLab-Project1\obj\Debug\net8.0\refin
 D:\Repos\Momory-Management-Project-Lab\MemoryLab-Project1\obj\Debug\net8.0\MemoryLab-Project1.pdb
 D:\Repos\Momory-Management-Project-Lab\MemoryLab-Project1\obj\Debug\net8.0\MemoryLab-Project1.genruntimeconfig.cache
 D:\Repos\Momory-Management-Project-Lab\MemoryLab-Project1\obj\Debug\net8.0\ref\MemoryLab-Project1.dll
+D:\Repos\Momory-Management-Project-Lab\MemoryLab-Project1\obj\Debug\net8.0\MemoryLab-Project1.sourcelink.json
