@@ -114,14 +114,14 @@ class LeakDemo
             //File exists but data my not be flushed yet
             var info = new FileInfo("Leak_test.log");
             Console.WriteLine($"File size: {info.Length} bytes");
-            if(info.Length == 0)
-                 Console.WriteLine("  Data is buffered in memory - NOT on disk yet!");
+            if (info.Length == 0)
+                Console.WriteLine("  Data is buffered in memory - NOT on disk yet!");
         }
         catch (System.Exception ex)
         {
             Console.WriteLine($" Error accessing file: {ex.Message}");
-           
-        }      
+
+        }
 
         // The logger goes out of scope here, but the file handle is NOT released.
         // The GC *might* clean it up later, or it might not for a long time.
@@ -159,7 +159,7 @@ class SafeFileLogger : IDisposable
         //         If _disposed is true, throw an ObjectDisposedException.
         //         This prevents usage after cleanup — a common production bug.
         //
-        // if (_disposed) throw new ObjectDisposedException(nameof(SafeFileLogger));
+        if (_disposed) throw new ObjectDisposedException(nameof(SafeFileLogger), "Cannot log to a disposed logger");
 
         _writer?.WriteLine($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] [{level}] {message}");
     }
@@ -173,32 +173,32 @@ class SafeFileLogger : IDisposable
     // TODO 8: Implement the Dispose() method.
     //         This is called by the 'using' statement (or manually).
     //
-    // public void Dispose()
-    // {
-    //     if (!_disposed)
-    //     {
-    //         _writer?.Flush();
-    //         _writer?.Dispose();     // Release the file handle
-    //         _writer = null;
-    //         _disposed = true;
-    //         Console.WriteLine($"  [SafeLogger] Disposed: {_filePath}");
-    //
-    //         GC.SuppressFinalize(this);  // No need for finalizer now
-    //     }
-    // }
+    public void Dispose()
+    {
+        if (!_disposed)
+        {
+            _writer?.Flush();
+            _writer?.Dispose();     // Release the file handle
+            _writer = null;
+            _disposed = true;
+            Console.WriteLine($"  [SafeLogger] Disposed: {_filePath}");
+
+            GC.SuppressFinalize(this);  // No need for finalizer now
+        }
+    }
 
     // TODO 9: Add a finalizer (destructor) as a safety net.
     //         This runs IF someone forgets to call Dispose().
     //         WARNING: Finalizers are slow and non-deterministic.
     //
-    // ~SafeFileLogger()
-    // {
-    //     Console.WriteLine($"  [!] FINALIZER ran for {_filePath} — someone forgot to Dispose!");
-    //     Dispose();
-    // }
+    ~SafeFileLogger()
+    {
+        Console.WriteLine($"  [!] FINALIZER ran for {_filePath} — someone forgot to Dispose!");
+        Dispose();
+    }
 
     // Stub to make the code compile before TODO 8 is done:
-    public void Dispose() { /* Replace this with TODO 8 */ }
+    //public void Dispose() { /* Replace this with TODO 8 */ }
 }
 
 // ---------------------------------------------------------------------------
@@ -217,29 +217,29 @@ class UsingDemo
         //
         //          Replace the manual approach below with:
         //
-        //   using (var logger = new SafeFileLogger("safe_app.log"))
-        //   {
-        //       logger.Log("INFO", "Application started");
-        //       logger.Log("WARN", "Low disk space");
-        //       logger.Log("ERROR", "Connection timeout");
-        //   }  // <-- Dispose() is called automatically here
-        //
-        //   Console.WriteLine("  Logger disposed automatically by 'using' block.\n");
+        using (var logger = new SafeFileLogger("safe_app.log"))
+        {
+            logger.Log("INFO", "Application started");
+            logger.Log("WARN", "Low disk space");
+            logger.Log("ERROR", "Connection timeout");
+        }  // <-- Dispose() is called automatically here
+           //
+        Console.WriteLine("  Logger disposed automatically by 'using' block.\n");
 
         // Current manual approach (replace with 'using' above):
-        var logger = new SafeFileLogger("safe_app.log");
-        logger.Log("INFO", "Application started");
-        logger.Log("WARN", "Low disk space");
-        logger.Log("ERROR", "Connection timeout");
+        //var logger = new SafeFileLogger("safe_app.log");
+        //logger.Log("INFO", "Application started");
+        //logger.Log("WARN", "Low disk space");
+        //logger.Log("ERROR", "Connection timeout");
         // Oops — no Dispose() call! The file handle leaks.
 
         Console.WriteLine("  [!] Manual approach — easy to forget Dispose().\n");
 
         // TODO 11 (BONUS): C# 8+ has a simpler 'using declaration' syntax:
         //
-        //   using var logger2 = new SafeFileLogger("safe_app2.log");
-        //   logger2.Log("INFO", "This is cleaner syntax");
-        //   // Dispose() happens at the end of the enclosing scope
+        using var logger2 = new SafeFileLogger("safe_app2.log");
+        logger2.Log("INFO", "This is cleaner syntax");
+        // Dispose() happens at the end of the enclosing scope
         //
         //   QUESTION: What's the difference between 'using' block and 'using' declaration?
         //   When would you prefer one over the other?
@@ -257,27 +257,27 @@ class MemoryMonitor
         Console.WriteLine("=== EXERCISE 5: Memory Monitoring ===\n");
 
         // TODO 12: Record memory BEFORE allocating objects.
-        //   long memBefore = GC.GetTotalMemory(forceFullCollection: true);
-        //   Console.WriteLine($"  Memory before: {memBefore:N0} bytes");
+        long memBefore = GC.GetTotalMemory(forceFullCollection: true);
+        Console.WriteLine($"  Memory before: {memBefore:N0} bytes");
 
         // TODO 13: Create several large objects (e.g., big string arrays)
-        //   var logs = new string[10_000];
-        //   for (int i = 0; i < logs.Length; i++)
-        //       logs[i] = $"Log entry #{i}: {new string('X', 200)}";
+        var logs = new string[10_000];
+        for (int i = 0; i < logs.Length; i++)
+            logs[i] = $"Log entry #{i}: {new string('X', 200)}";
 
         // TODO 14: Record memory AFTER and compute the difference.
-        //   long memAfter = GC.GetTotalMemory(false);
-        //   Console.WriteLine($"  Memory after:  {memAfter:N0} bytes");
-        //   Console.WriteLine($"  Difference:    {memAfter - memBefore:N0} bytes");
-        //   Console.WriteLine($"  GC Gen0 collections: {GC.CollectionCount(0)}");
-        //   Console.WriteLine($"  GC Gen1 collections: {GC.CollectionCount(1)}");
-        //   Console.WriteLine($"  GC Gen2 collections: {GC.CollectionCount(2)}");
+        long memAfter = GC.GetTotalMemory(false);
+        Console.WriteLine($"  Memory after:  {memAfter:N0} bytes");
+        Console.WriteLine($"  Difference:    {memAfter - memBefore:N0} bytes");
+        Console.WriteLine($"  GC Gen0 collections: {GC.CollectionCount(0)}");
+        Console.WriteLine($"  GC Gen1 collections: {GC.CollectionCount(1)}");
+        Console.WriteLine($"  GC Gen2 collections: {GC.CollectionCount(2)}");
 
         // TODO 15: Set logs = null and force a collection. Observe memory drop.
-        //   logs = null;
-        //   long memFinal = GC.GetTotalMemory(forceFullCollection: true);
-        //   Console.WriteLine($"\n  After cleanup: {memFinal:N0} bytes");
-        //   Console.WriteLine($"  Reclaimed:     {memAfter - memFinal:N0} bytes");
+        logs = null;
+        long memFinal = GC.GetTotalMemory(forceFullCollection: true);
+        Console.WriteLine($"\n  After cleanup: {memFinal:N0} bytes");
+        Console.WriteLine($"  Reclaimed:     {memAfter - memFinal:N0} bytes");
 
         Console.WriteLine("  (Uncomment the TODOs above to see memory tracking in action)\n");
     }
